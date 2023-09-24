@@ -3,6 +3,7 @@ from scipy.special import gamma
 from scipy.integrate import quad
 from scipy.optimize import fsolve
 import csv
+import configparser
 
 def kCalculation(N, d, target_integrity, init_k):
     result_k = fsolve(objFunc, init_k, args=(N, d, target_integrity), xtol=1e-1000, maxfev=10000)
@@ -29,21 +30,31 @@ d = 2.0 # dimension
 arr_target_integrity = np.array([0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001, 0.0000001, 0.00000001, 0.000000001, 0.0000000001, 0.00000000001])
 arr_sample_dof = np.arange(1, 20, step=1) # 1:1:20
 
-# Calculate 'k' value using solver
-whole_integrity_dof_k_table = list()
+# init config
+config = configparser.ConfigParser()
 
 for integrityIdx in range(len(arr_target_integrity)):
-    integrity_dof_k_table_list = list()
+    integrity_dof_table_list = list()
+    integrity_k_table_list = list()
 
     # save in csv file
     file_name_tir = str(arr_target_integrity[integrityIdx]) + '.ini'
-    file_name = open(file_name_tir, "w", newline="")
-    writer = csv.writer(file_name)
+
+    config.add_section(str(arr_target_integrity[integrityIdx]))
 
     for dofIdx in range(len(arr_sample_dof)):
         k = kCalculation(arr_sample_dof[dofIdx], d, arr_target_integrity[integrityIdx], 1.0)
-        integrity_dof_k_table_list.append([arr_sample_dof[dofIdx], k[0]])
-    
-    print(integrity_dof_k_table_list)
-    writer.writerows(integrity_dof_k_table_list)
-    file_name.close()
+        integrity_dof_table_list.append(arr_sample_dof[dofIdx])
+        integrity_k_table_list.append(k[0])
+
+    dof_str = ', '.join(map(str, integrity_dof_table_list))
+    config.set(str(arr_target_integrity[integrityIdx]), 'cfg_vec_dof', dof_str)
+
+    k_str = ', '.join(map(str, integrity_k_table_list))
+    config.set(str(arr_target_integrity[integrityIdx]), 'cfg_vec_k', k_str)
+
+    print(integrity_dof_table_list)
+    print(integrity_k_table_list)
+
+    with open('multivariate_student_t_distribution_k_dof_table.ini', 'w') as configfile:
+        config.write(configfile)
