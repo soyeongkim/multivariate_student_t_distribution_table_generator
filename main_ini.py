@@ -2,7 +2,6 @@ import numpy as np
 from scipy.special import gamma
 from scipy.integrate import quad
 from scipy.optimize import fsolve
-import csv
 import configparser
 
 def kCalculation(N, d, target_integrity, init_k):
@@ -27,7 +26,6 @@ def quadInteger(k, N, d):
 d = 2.0 # dimension
 
 # non-fixed param
-# arr_target_integrity = np.array([0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001, 0.0000001, 0.00000001, 0.000000001, 0.0000000001, 0.00000000001])
 arr_target_integrity_exp = np.arange(1, 20, step=1) # 1:1:20
 arr_sample_dof = np.arange(1, 20, step=1) # 1:1:20
 
