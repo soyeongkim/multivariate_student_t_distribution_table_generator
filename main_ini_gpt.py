@@ -5,22 +5,24 @@ from scipy.optimize import fsolve
 import configparser
 
 def kCalculation(N, d, target_integrity, init_k):
-    result_k = fsolve(objFunc, init_k, args=(N, d, target_integrity), xtol=1e-1000, maxfev=10000)
+    # Beta function
+    beta_func = gamma((d + N) / 2) / (gamma(d / 2) * gamma(N / 2))
 
-    return result_k
+    # Set function for integral
+    def tFunc(r):
+        return (r**(d - 1)) * (1 + r**2)**(-(N + d) / 2)
 
-def objFunc(k, N, d, target_integrity):
-    return 2 * betaFunc(N,d) * quadInteger(k, N, d) - target_integrity
+    # Object function for finding protection level which satisfies "target integrity"
+    # Pillipe Fault paper reference
+    def object_function(k):
+        integral_result, _ = quad(tFunc, k, np.inf)
+        return 2 * beta_func * integral_result - target_integrity
 
-def tFunc(r, N, d):
-    return (pow(r,(d-1))) * pow((1 + pow(r,2)),(-(N+d)/2))
+    # Get protection level using "fsolve" function
+    options = {'xtol': 1e-20}
+    k_solution = fsolve(object_function, init_k, **options)
 
-def betaFunc(d, N):
-    return gamma((d+N)/2) / (gamma(d/2)*gamma(N/2))
-
-def quadInteger(k, N, d):
-    y, err = quad(tFunc, k, np.infty, args=(N, d))
-    return y
+    return k_solution[0]  # fsolve returns a list, so we take the first element
 
 # fixed param
 d = 2.0 # dimension
@@ -48,17 +50,11 @@ for integrityIdx in range(len(arr_target_integrity_exp)):
 
     for dofIdx in range(len(arr_sample_dof)):
         k = kCalculation(arr_sample_dof[dofIdx], d, target_integrity, 1.0)
-        integrity_dof_table_list.append(arr_sample_dof[dofIdx])
-        integrity_k_table_list.append(k[0])
-
-    # dof_str = ', '.join(map(str, integrity_dof_table_list))
-    # config.set(ini_target_integrity_exp, 'm_cfg_vec_num_of_samples', dof_str)
+        print(arr_sample_dof[dofIdx], d, arr_target_integrity_exp[integrityIdx],k)
+        integrity_k_table_list.append(k)
 
     k_str = ', '.join(map(str, integrity_k_table_list))
     config.set(ini_target_integrity_exp, 'm_cfg_vec_k', k_str)
-
-    print(integrity_dof_table_list)
-    print(integrity_k_table_list)
 
     with open('multivariate_student_t_distribution_k_dof_table.ini', 'w') as configfile:
         config.write(configfile)
